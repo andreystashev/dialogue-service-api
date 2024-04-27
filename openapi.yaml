@@ -1,0 +1,817 @@
+openapi: 3.0.2
+info:
+  title: Botan Task
+  version: 0.1.0
+paths:
+  /api/v1/auth/sign_in:
+    post:
+      tags:
+      - Authorization
+      summary: Login
+      description: 'Authorization of the current user by email and password
+
+
+        We use OAuth2PasswordRequestForm so that we can
+
+        conveniently test the service via openapi docs view'
+      operationId: login_api_v1_auth_sign_in_post
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Body_login_api_v1_auth_sign_in_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JWTTokenResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/refresh_token:
+    post:
+      tags:
+      - Authorization
+      summary: Refresh Token
+      description: Updating an expired token
+      operationId: refresh_token_api_v1_auth_refresh_token_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JWTTokenResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/auth/logout:
+    post:
+      tags:
+      - Authorization
+      summary: Logout
+      description: User Logout
+      operationId: logout_api_v1_auth_logout_post
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JWTTokenDisabledResponse'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/users/set_password:
+    put:
+      tags:
+      - Users
+      summary: Set Password
+      description: Changes the user's password
+      operationId: set_password_api_v1_users_set_password_put
+      parameters:
+      - required: true
+        schema:
+          title: Password
+          type: string
+        name: password
+        in: query
+      - required: true
+        schema:
+          title: Password Confirm
+          type: string
+        name: password_confirm
+        in: query
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/users/activate/{user_id}:
+    put:
+      tags:
+      - Users
+      summary: Activate User
+      description: 'Only admin
+
+
+        Activates the user by user_id.
+
+        Functionality with a perspective for the future.
+
+        If you need a mechanism for approving/filtering new users'
+      operationId: activate_user_api_v1_users_activate__user_id__put
+      parameters:
+      - required: true
+        schema:
+          title: User Id
+          type: integer
+        name: user_id
+        in: path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/users/all:
+    get:
+      tags:
+      - Users
+      summary: Get Users
+      description: 'Only admin
+
+
+        Returns information about all users'
+      operationId: get_users_api_v1_users_all_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/users/user/:
+    post:
+      tags:
+      - Users
+      summary: Create Web User
+      description: Creates a user
+      operationId: create_web_user_api_v1_users_user__post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateWeb'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+  /api/v1/users/user/{email}:
+    get:
+      tags:
+      - Users
+      summary: Get User By Email
+      description: Returns information about the user by his email
+      operationId: get_user_by_email_api_v1_users_user__email__get
+      parameters:
+      - required: true
+        schema:
+          title: Email
+          type: string
+        name: email
+        in: path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/users/me:
+    get:
+      tags:
+      - Users
+      summary: Me
+      description: User Profile
+      operationId: me_api_v1_users_me_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserResponse'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/dialog/create:
+    post:
+      tags:
+      - Dialog
+      summary: Create Dialog
+      description: 'Creating a request to receive text from the input prompt.
+
+        Celery is used for simplicity. Tasks are being performed on hold,
+
+        on the client side it is necessary to monitor the status of the task
+
+        and get the result after achieving a successful status.
+
+
+        In the future, it is necessary to use kafka as a transport
+
+        of tasks to a separate ml server'
+      operationId: create_dialog_api_v1_dialog_create_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerationRequest'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationResult'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/dialog/status/{dialog_id}:
+    get:
+      tags:
+      - Dialog
+      summary: Get Status
+      description: Getting the status of a celery task according to id
+      operationId: get_status_api_v1_dialog_status__dialog_id__get
+      parameters:
+      - required: true
+        schema:
+          title: Dialog Id
+          type: string
+        name: dialog_id
+        in: path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationStatus'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/dialog/result/{dialog_id}:
+    get:
+      tags:
+      - Dialog
+      summary: Get Result
+      description: Getting the result of generation after achieving a successful status
+        in the task
+      operationId: get_result_api_v1_dialog_result__dialog_id__get
+      parameters:
+      - required: true
+        schema:
+          title: Dialog Id
+          type: string
+        name: dialog_id
+        in: path
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerationResultText'
+        '404':
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '409':
+          description: Conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExceptionMessage'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/dialog/history/limit-offset:
+    get:
+      tags:
+      - Dialog
+      summary: Get User Dialogs
+      description: 'Getting the dialog history for a given user with pagination.
+
+        A third-party library is used for pagination.
+
+        In the future, it is necessary to implement its own mechanism'
+      operationId: get_user_dialogs_api_v1_dialog_history_limit_offset_get
+      parameters:
+      - required: true
+        schema:
+          title: User Id
+          type: integer
+        name: user_id
+        in: query
+      - required: false
+        schema:
+          title: Limit
+          maximum: 100.0
+          minimum: 1.0
+          type: integer
+          default: 50
+        name: limit
+        in: query
+      - required: false
+        schema:
+          title: Offset
+          minimum: 0.0
+          type: integer
+          default: 0
+        name: offset
+        in: query
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LimitOffsetPage_GenerationResultAll_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+  /api/v1/dialog/history:
+    get:
+      tags:
+      - Dialog
+      summary: Get User Dialogs
+      description: 'Getting the dialog history for a given user with pagination.
+
+        A third-party library is used for pagination.
+
+        In the future, it is necessary to implement its own mechanism'
+      operationId: get_user_dialogs_api_v1_dialog_history_get
+      parameters:
+      - required: true
+        schema:
+          title: User Id
+          type: integer
+        name: user_id
+        in: query
+      - required: false
+        schema:
+          title: Page
+          minimum: 1.0
+          type: integer
+          default: 1
+        name: page
+        in: query
+      - required: false
+        schema:
+          title: Size
+          maximum: 100.0
+          minimum: 1.0
+          type: integer
+          default: 50
+        name: size
+        in: query
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page_GenerationResultAll_'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+      security:
+      - OAuth2PasswordBearer: []
+components:
+  schemas:
+    Body_login_api_v1_auth_sign_in_post:
+      title: Body_login_api_v1_auth_sign_in_post
+      required:
+      - username
+      - password
+      type: object
+      properties:
+        grant_type:
+          title: Grant Type
+          pattern: password
+          type: string
+        username:
+          title: Username
+          type: string
+        password:
+          title: Password
+          type: string
+        scope:
+          title: Scope
+          type: string
+          default: ''
+        client_id:
+          title: Client Id
+          type: string
+        client_secret:
+          title: Client Secret
+          type: string
+    ExceptionMessage:
+      title: ExceptionMessage
+      required:
+      - status_code
+      - error_details
+      - error_code
+      type: object
+      properties:
+        status_code:
+          title: Status Code
+          type: integer
+        error_details:
+          title: Error Details
+          type: string
+        error_code:
+          title: Error Code
+          type: integer
+    GenerationRequest:
+      title: GenerationRequest
+      required:
+      - prompt
+      type: object
+      properties:
+        prompt:
+          title: Prompt
+          type: string
+    GenerationResult:
+      title: GenerationResult
+      required:
+      - dialog_id
+      - time
+      type: object
+      properties:
+        dialog_id:
+          title: Dialog Id
+          type: string
+        time:
+          title: Time
+          type: number
+    GenerationResultAll:
+      title: GenerationResultAll
+      required:
+      - dialog_id
+      - prompt
+      - result_text
+      - user_id
+      type: object
+      properties:
+        dialog_id:
+          title: Dialog Id
+          type: string
+        prompt:
+          title: Prompt
+          type: string
+        result_text:
+          title: Result Text
+          type: string
+        user_id:
+          title: User Id
+          type: integer
+    GenerationResultText:
+      title: GenerationResultText
+      required:
+      - dialog_id
+      - prompt
+      - result_text
+      type: object
+      properties:
+        dialog_id:
+          title: Dialog Id
+          type: string
+        prompt:
+          title: Prompt
+          type: string
+        result_text:
+          title: Result Text
+          type: string
+    GenerationStatus:
+      title: GenerationStatus
+      required:
+      - dialog_id
+      - status
+      type: object
+      properties:
+        dialog_id:
+          title: Dialog Id
+          type: string
+        status:
+          title: Status
+          type: string
+    HTTPValidationError:
+      title: HTTPValidationError
+      type: object
+      properties:
+        detail:
+          title: Detail
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+    JWTTokenDisabledResponse:
+      title: JWTTokenDisabledResponse
+      required:
+      - access_token_disabled
+      type: object
+      properties:
+        access_token_disabled:
+          title: Access Token Disabled
+          type: string
+    JWTTokenResponse:
+      title: JWTTokenResponse
+      required:
+      - access_token
+      type: object
+      properties:
+        access_token:
+          title: Access Token
+          type: string
+    LimitOffsetPage_GenerationResultAll_:
+      title: LimitOffsetPage[GenerationResultAll]
+      required:
+      - items
+      - total
+      - limit
+      - offset
+      type: object
+      properties:
+        items:
+          title: Items
+          type: array
+          items:
+            $ref: '#/components/schemas/GenerationResultAll'
+        total:
+          title: Total
+          minimum: 0.0
+          type: integer
+        limit:
+          title: Limit
+          minimum: 1.0
+          type: integer
+        offset:
+          title: Offset
+          minimum: 0.0
+          type: integer
+    Page_GenerationResultAll_:
+      title: Page[GenerationResultAll]
+      required:
+      - items
+      - total
+      - page
+      - size
+      type: object
+      properties:
+        items:
+          title: Items
+          type: array
+          items:
+            $ref: '#/components/schemas/GenerationResultAll'
+        total:
+          title: Total
+          minimum: 0.0
+          type: integer
+        page:
+          title: Page
+          minimum: 1.0
+          type: integer
+        size:
+          title: Size
+          minimum: 1.0
+          type: integer
+        pages:
+          title: Pages
+          minimum: 0.0
+          type: integer
+    RefreshToken:
+      title: RefreshToken
+      required:
+      - refresh_token
+      type: object
+      properties:
+        refresh_token:
+          title: Refresh Token
+          type: string
+    UserCreateWeb:
+      title: UserCreateWeb
+      required:
+      - email
+      - password
+      type: object
+      properties:
+        email:
+          title: Email
+          type: string
+        password:
+          title: Password
+          type: string
+    UserListResponse:
+      title: UserListResponse
+      required:
+      - users
+      type: object
+      properties:
+        users:
+          title: Users
+          type: array
+          items:
+            $ref: '#/components/schemas/UserResponse'
+    UserResponse:
+      title: UserResponse
+      required:
+      - id
+      - created_at
+      - is_active
+      type: object
+      properties:
+        id:
+          title: Id
+          type: integer
+        created_at:
+          title: Created At
+          type: string
+          format: date-time
+        email:
+          title: Email
+          type: string
+        is_active:
+          title: Is Active
+          type: boolean
+    ValidationError:
+      title: ValidationError
+      required:
+      - loc
+      - msg
+      - type
+      type: object
+      properties:
+        loc:
+          title: Location
+          type: array
+          items:
+            anyOf:
+            - type: string
+            - type: integer
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+  securitySchemes:
+    OAuth2PasswordBearer:
+      type: oauth2
+      flows:
+        password:
+          scopes: {}
+          tokenUrl: /api/v1/auth/sign_in

@@ -1,0 +1,6 @@
+*
+!/requirements.txt
+!/alembic.ini
+!/Makefile
+!/app
+!/migrations

@@ -1,0 +1,80 @@
+services:
+
+  dialog-api:
+    hostname: dialog-api
+    container_name: dialog-api
+    image: dialog-api
+    restart: always
+    build: .
+    ports:
+      - ${APP_PORT}:${APP_PORT}
+    command: gunicorn --bind :${APP_PORT} --workers 1 app.main:app --worker-class uvicorn.workers.UvicornWorker --preload --timeout 120
+    env_file:
+      - ./.env
+    depends_on:
+      - postgres
+
+  postgres:
+    image: postgres:14.4
+    hostname: postgres_db
+    container_name: postgres_db
+    restart: always
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DB}
+    volumes:
+      - postgres-db:/var/lib/postgresql/data
+
+  pgadmin:
+    image: chorss/docker-pgadmin4
+    restart: always
+    ports:
+      - 127.0.0.1:5050:5050
+    depends_on:
+      - postgres
+
+  worker:
+    image: dialog-api
+    command: celery worker --app=app.services.worker_svc -l info -Q default
+    env_file:
+      - ./.env
+    depends_on:
+      - dialog-api
+      - redis
+    volumes:
+      - .:/app/worker
+
+  redis:
+    image: redis:6-alpine
+    volumes:
+      - redis_data:/data
+
+  dashboard:
+    image: dialog-api
+    command: flower worker --app=app.services.worker_svc --address=0.0.0.0 --port=${FLOWER_PORT} --broker=redis://redis:6379/0 --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}
+    ports:
+      - ${FLOWER_PORT}:${FLOWER_PORT}
+    env_file:
+      - ./.env
+    depends_on:
+      - redis
+      - worker
+
+#  get_current_time_svc:
+#    image: get-current-time-svc
+#    ports:
+#      - 8000:8000
+
+  get_joke:
+    image: get-joke
+    ports:
+      - 8000:8000
+
+
+volumes:
+  postgres-db:
+  redis_data:
+    external: false
