@@ -11,8 +11,7 @@ FastAPI gateway for the dialogue service. This project is part of the "Programmi
 - [Установка и запуск](#установка-и-запуск)
 - [Использование](#использование)
 - [Документация](#документация)
-- [Вклад](#вклад)
-- [Лицензия](#лицензия)
+
 
 #### Описание
 Этот репозиторий содержит реализацию шлюза FastAPI для сервиса диалогов, который включает функцию отправки случайных шуток. Проект демонстрирует использование FastAPI, Docker и интеграцию с внешними API.
@@ -47,9 +46,5 @@ FastAPI gateway for the dialogue service. This project is part of the "Programmi
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
 - [Docker Documentation](https://docs.docker.com/)
 
-#### Вклад
-Если вы хотите внести вклад в этот проект, пожалуйста, откройте Pull Request или создайте Issue для обсуждения ваших идей.
 
-#### Лицензия
-Этот проект лицензирован под лицензией MIT. Подробности можно найти в файле [LICENSE](LICENSE).
 
