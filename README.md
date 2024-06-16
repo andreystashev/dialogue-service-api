@@ -40,7 +40,7 @@ FastAPI gateway for the dialogue service. This project is part of the "Programmi
 После запуска сервисов, вы можете получить доступ к API следующим образом:
 
 - **Quick access to the OpenAPI specification of the service:** [here](./openapi.yaml)
-- **Visualize:** [here]([#](https://editor.swagger.io))
+- **Visualize:** [here](https://editor.swagger.io)
 
 #### Документация
 - [FastAPI Documentation](https://fastapi.tiangolo.com/)
