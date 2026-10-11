@@ -55,17 +55,18 @@ docker compose run --rm dialog-api alembic upgrade head
 docker compose up -d dialog-api
 ```
 
-Start a worker in a second terminal with the Celery 5 command format:
+Start the worker with the Celery 5 command configured in Compose:
 
 ```bash
-docker compose run --rm --no-deps worker celery --app=app.services.worker_svc:celery_app worker -l info -Q default
+docker compose up -d worker
+docker compose logs -f worker
 ```
 
 Open **<http://localhost:8080/docs>** for interactive documentation. The root URL redirects there, and the live schema is available at `/openapi.json`. A snapshot is committed as [openapi.yaml](openapi.yaml).
 
-The worker command above runs in the foreground; Ctrl+C stops it. Use `docker compose down` to stop the API, PostgreSQL, and Redis while preserving named volumes.
+Ctrl+C stops log following; the worker keeps running. Use `docker compose down` to stop the application while preserving named volumes.
 
-The full legacy Compose stack also defines Flower and a separate joke container. Its default worker command predates the Celery 5 dependency update. The steps above explicitly select the API/database/Redis services and override that worker command; do not use plain `docker compose up` as a verified full-stack launch. The worker already imports the joke function directly, so no separate joke image is needed for this workflow.
+Optional Flower and pgAdmin services use the `tools` Compose profile. Flower is pinned to a Celery 5-compatible release, and both worker and dashboard commands use the current CLI argument order. The separate old joke container is isolated in the `legacy-joke-service` profile; the worker imports the local joke function directly and does not need that image.
 
 ## API workflow
 
@@ -113,4 +114,4 @@ Unit tests supply isolated settings and replace database dependencies. They need
 
 GitHub Actions additionally runs `python -m pytest tests/app -q` against a disposable PostgreSQL database. **These integration tests recreate tables**: use a separate test database such as `dialogue_test`, never a working database. See the [workflow](.github/workflows/tests.yml) for the exact service and environment setup.
 
-This is an educational backend using an older FastAPI/Pydantic stack. CI checks the API and worker logic; it does not validate the complete legacy Compose deployment or an external generation service.
+This is an educational backend using an older FastAPI/Pydantic stack. CI checks dependency consistency, worker/dashboard CLI loading, and API and worker logic. It does not validate the complete Compose deployment or an external generation service.
