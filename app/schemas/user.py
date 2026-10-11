@@ -57,3 +57,8 @@ class UserListResponse(pydantic.BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class PasswordChange(pydantic.BaseModel):
+    password: pydantic.SecretStr
+    password_confirm: pydantic.SecretStr

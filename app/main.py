@@ -1,5 +1,3 @@
-import json
-
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import RedirectResponse
@@ -55,19 +53,12 @@ async def http_exception_handler(
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(_: Request, e: RequestValidationError):
-    jsonsable_body = True
-    try:
-        json.dumps(e.body)
-    except Exception:  # noqa: BLE001
-        jsonsable_body = False
-
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
         content={
             "status_code": status.HTTP_422_UNPROCESSABLE_ENTITY,
             "error_details": "request validation error",
             "validation_errors": e.errors(),
-            "request_body": e.body if jsonsable_body else "",
         },
     )
 
@@ -79,7 +70,6 @@ def homepage():
 
 # Routes
 app.include_router(api_router, prefix=settings.API_V1_STR)
-# app.include_router(api_router, prefix=settings.API_V2_STR)
 
 app.add_middleware(SessionMiddleware, secret_key=settings.SECRET_KEY)
 
