@@ -101,19 +101,12 @@ paths:
       summary: Set Password
       description: Changes the user's password
       operationId: set_password_api_v1_users_set_password_put
-      parameters:
-      - required: true
-        schema:
-          title: Password
-          type: string
-        name: password
-        in: query
-      - required: true
-        schema:
-          title: Password Confirm
-          type: string
-        name: password_confirm
-        in: query
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordChange'
+        required: true
       responses:
         '200':
           description: Successful Response
@@ -733,6 +726,23 @@ components:
           title: Pages
           minimum: 0.0
           type: integer
+    PasswordChange:
+      title: PasswordChange
+      required:
+      - password
+      - password_confirm
+      type: object
+      properties:
+        password:
+          title: Password
+          type: string
+          format: password
+          writeOnly: true
+        password_confirm:
+          title: Password Confirm
+          type: string
+          format: password
+          writeOnly: true
     RefreshToken:
       title: RefreshToken
       required:

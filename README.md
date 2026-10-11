@@ -48,3 +48,44 @@ FastAPI gateway for the dialogue service. This project is part of the "Programmi
 
 
 
+
+## Смена пароля
+
+`PUT /api/v1/users/set_password` принимает JSON-тело и требует Bearer-токен:
+
+```http
+PUT /api/v1/users/set_password
+Authorization: Bearer <access-token>
+Content-Type: application/json
+
+{"password": "new-password", "password_confirm": "new-password"}
+```
+
+Передача паролей через query-параметры больше не поддерживается. Обновите
+клиентские вызовы на JSON-тело. При ошибке валидации API возвращает описание
+ошибок, но не копирует исходное тело запроса в ответ. Поля смены пароля
+маскируются при отображении модели; правила длины и подтверждения остаются
+в сервисе пользователей.
+
+## Проверки API и фоновых задач
+
+Текущий стек проекта рассчитан на Python 3.10. Для воспроизводимого тестового
+окружения используйте совместимые версии тестового клиента и зависимостей:
+
+```bash
+python3.10 -m venv .venv
+source .venv/bin/activate
+python -m pip install pip==24.0
+python -m pip install -r requirements-test.txt
+python -m unittest discover -s tests/unit -v
+```
+
+Фиксация pip нужна для метаданных существующей версии Celery 4. Модульные
+проверки используют тестовые настройки и подменяют DB-зависимости: им не нужны
+PostgreSQL, Redis или рабочий Celery worker. Проверяются JSON-тело смены пароля,
+авторизация, отсутствие пароля в ответах валидации и закрытие DB-сессии на всех
+ветках фоновой задачи, включая возврат из кеша и ошибки.
+
+GitHub Actions дополнительно запускает существующие API-тесты с отдельной
+PostgreSQL-базой `dialogue_test`. Эти интеграционные тесты пересоздают таблицы:
+запускайте их только с отдельной тестовой базой, никогда с рабочей.

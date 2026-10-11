@@ -5,6 +5,7 @@ from app.api.deps import check_user_is_owner, get_admin_user, get_current_user
 from app.db.database import get_db
 from app.schemas.exceptions import ExceptionMessage
 from app.schemas.user import (
+    PasswordChange,
     User,
     UserCreateWeb,
     UserListResponse,
@@ -22,8 +23,7 @@ router = APIRouter()
     responses={404: {"model": ExceptionMessage}},
 )
 async def set_password(
-    password: str,
-    password_confirm: str,
+    payload: PasswordChange,
     db: Session = Depends(get_db),
     current_user: UserResponse = Depends(get_current_user),
 ):
@@ -33,8 +33,8 @@ async def set_password(
     return user_svc.set_user_password(
         db=db,
         id=current_user.id,
-        password=password,
-        password_confirm=password_confirm,
+        password=payload.password.get_secret_value(),
+        password_confirm=payload.password_confirm.get_secret_value(),
     )
 
 
