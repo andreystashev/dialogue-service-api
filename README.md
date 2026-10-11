@@ -1,57 +1,91 @@
-### README файл:
+# Dialogue Service API
 
-#### Title:
-**Dialogue Service API**
+[![API and worker tests](https://github.com/andreystashev/dialogue-service-api/actions/workflows/tests.yml/badge.svg)](https://github.com/andreystashev/dialogue-service-api/actions/workflows/tests.yml)
 
-#### Description:
-FastAPI gateway for the dialogue service. This project is part of the "Programming Practice" course at National University of Science and Technology MISIS. It includes functionality for sending random jokes.
+A **FastAPI backend** with user authentication, asynchronous dialogue jobs, and persistent result history. Built as part of the *Programming Practice* course at the National University of Science and Technology MISIS.
 
-#### Содержание:
-- [Описание](#описание)
-- [Установка и запуск](#установка-и-запуск)
-- [Использование](#использование)
-- [Документация](#документация)
+The current dialogue implementation returns a random joke from a local list. It demonstrates the request → background task → stored result workflow; it does not call a language model.
 
+## Features
 
-#### Описание
-Этот репозиторий содержит реализацию шлюза FastAPI для сервиса диалогов, который включает функцию отправки случайных шуток. Проект демонстрирует использование FastAPI, Docker и интеграцию с внешними API.
+- User registration, administrator activation, and password changes.
+- JWT sign-in, token refresh, and logout.
+- Celery jobs with Redis as broker and result backend.
+- PostgreSQL history, cached prompt results, and paginated history endpoints.
+- Request rate limiting, response timing, and Prometheus instrumentation.
+- OpenAPI documentation and Alembic database migrations.
 
-#### Установка и запуск
-Чтобы запустить полный набор сервисов локально, выполните следующие шаги:
+## Architecture
 
-1. Создайте актуальный файл `.env` на основе `.env.example`.
-   ```sh
-   cp .env.example .env
-   ```
-2. Создайте Docker-образ:
-   ```sh
-   docker build -t get-joke ./app/get_jokes
-   ```
-3. Выполните миграции базы данных:
-   ```sh
-   sudo docker-compose run --rm "dialog-api" make migrate
-   ```
-4. Запустите сервисы:
-   ```sh
-   sudo docker-compose up --build -d
-   ```
+```text
+Client → FastAPI → Celery / Redis → worker → PostgreSQL
+            └────────── history and result lookup ─────┘
+```
 
-#### Использование
-После запуска сервисов, вы можете получить доступ к API следующим образом:
+The worker checks for a cached prompt, otherwise selects a local joke, then stores the user's result. Database sessions close after success, a cache return, or an exception.
 
-- **Quick access to the OpenAPI specification of the service:** [here](./openapi.yaml)
-- **Visualize:** [here](https://editor.swagger.io)
+| Component | Responsibility |
+| --- | --- |
+| [app/api/api_v1/](app/api/api_v1/) | Authentication, users, dialogue, and health routes |
+| [app/services/](app/services/) | User, token, history, and worker logic |
+| [app/db/](app/db/) | SQLAlchemy models and repositories |
+| [app/core/config.py](app/core/config.py) | Environment configuration |
+| [app/get_jokes/get_jokes.py](app/get_jokes/get_jokes.py) | Current local joke implementation |
+| [migrations/](migrations/) | Alembic migrations |
+| [tests/](tests/) | Unit and database-backed API tests |
 
-#### Документация
-- [FastAPI Documentation](https://fastapi.tiangolo.com/)
-- [Docker Documentation](https://docs.docker.com/)
+## Run the API and worker
 
+Requirements: **Docker Engine/Desktop and Compose v2**. The application image uses Python 3.10.
 
+```bash
+git clone https://github.com/andreystashev/dialogue-service-api.git
+cd dialogue-service-api
+cp .env.example .env
+```
 
+Edit `.env`: set `APP_PORT=8080`, replace the example secret and database password, and retain the Compose database/Redis hostnames. Leave the unused OpenAI variables present; settings validation currently requires them even though the local joke implementation does not use them.
 
-## Смена пароля
+Build the application, start its backing services, apply migrations, and start the API:
 
-`PUT /api/v1/users/set_password` принимает JSON-тело и требует Bearer-токен:
+```bash
+docker compose build dialog-api
+docker compose up -d postgres redis
+docker compose run --rm dialog-api alembic upgrade head
+docker compose up -d dialog-api
+```
+
+Start a worker in a second terminal with the Celery 5 command format:
+
+```bash
+docker compose run --rm --no-deps worker celery --app=app.services.worker_svc:celery_app worker -l info -Q default
+```
+
+Open **<http://localhost:8080/docs>** for interactive documentation. The root URL redirects there, and the live schema is available at `/openapi.json`. A snapshot is committed as [openapi.yaml](openapi.yaml).
+
+The worker command above runs in the foreground; Ctrl+C stops it. Use `docker compose down` to stop the API, PostgreSQL, and Redis while preserving named volumes.
+
+The full legacy Compose stack also defines Flower and a separate joke container. Its default worker command predates the Celery 5 dependency update. The steps above explicitly select the API/database/Redis services and override that worker command; do not use plain `docker compose up` as a verified full-stack launch. The worker already imports the joke function directly, so no separate joke image is needed for this workflow.
+
+## API workflow
+
+Register a user, have an administrator activate it, then sign in using the email as the OAuth2 form's `username`. The repository does not automatically provision an initial administrator.
+
+| Method | Route | Purpose |
+| --- | --- | --- |
+| POST | `/api/v1/users/user/` | Register a user |
+| PUT | `/api/v1/users/activate/{user_id}` | Administrator activation |
+| POST | `/api/v1/auth/sign_in` | Obtain an access token |
+| POST | `/api/v1/auth/refresh_token` | Refresh a token |
+| POST | `/api/v1/auth/logout` | Disable the current token |
+| PUT | `/api/v1/users/set_password` | Change your password |
+| POST | `/api/v1/dialog/create` | Submit a background job |
+| GET | `/api/v1/dialog/status/{dialog_id}` | Poll task status |
+| GET | `/api/v1/dialog/result/{dialog_id}` | Retrieve the stored result |
+| GET | `/api/v1/dialog/history` | Paginated user history |
+| GET | `/api/v1/healthcheck` | API health |
+
+Password changes require a Bearer token and a JSON body:
 
 ```http
 PUT /api/v1/users/set_password
@@ -61,16 +95,11 @@ Content-Type: application/json
 {"password": "new-password", "password_confirm": "new-password"}
 ```
 
-Передача паролей через query-параметры больше не поддерживается. Обновите
-клиентские вызовы на JSON-тело. При ошибке валидации API возвращает описание
-ошибок, но не копирует исходное тело запроса в ответ. Поля смены пароля
-маскируются при отображении модели; правила длины и подтверждения остаются
-в сервисе пользователей.
+Password query parameters are no longer supported. Update older clients to JSON. Validation responses do not copy the original request body, and password-change model fields use masked secret values; length and confirmation rules remain in the user service.
 
-## Проверки API и фоновых задач
+## Development and tests
 
-Текущий стек проекта рассчитан на Python 3.10. Для воспроизводимого тестового
-окружения используйте совместимые версии тестового клиента и зависимостей:
+Use **Python 3.10** and the compatible test dependencies:
 
 ```bash
 python3.10 -m venv .venv
@@ -80,12 +109,8 @@ python -m pip install -r requirements-test.txt
 python -m unittest discover -s tests/unit -v
 ```
 
-Фиксация pip нужна для метаданных существующей версии Celery 4. Модульные
-проверки используют тестовые настройки и подменяют DB-зависимости: им не нужны
-PostgreSQL, Redis или рабочий Celery worker. Проверяются JSON-тело смены пароля,
-авторизация, отсутствие пароля в ответах валидации и закрытие DB-сессии на всех
-ветках фоновой задачи, включая возврат из кеша и ошибки.
+Unit tests supply isolated settings and replace database dependencies. They need no PostgreSQL, Redis, or running worker. They cover password JSON input, authorization, validation responses, and database-session cleanup in worker success/cache/error paths.
 
-GitHub Actions дополнительно запускает существующие API-тесты с отдельной
-PostgreSQL-базой `dialogue_test`. Эти интеграционные тесты пересоздают таблицы:
-запускайте их только с отдельной тестовой базой, никогда с рабочей.
+GitHub Actions additionally runs `python -m pytest tests/app -q` against a disposable PostgreSQL database. **These integration tests recreate tables**: use a separate test database such as `dialogue_test`, never a working database. See the [workflow](.github/workflows/tests.yml) for the exact service and environment setup.
+
+This is an educational backend using an older FastAPI/Pydantic stack. CI checks the API and worker logic; it does not validate the complete legacy Compose deployment or an external generation service.
