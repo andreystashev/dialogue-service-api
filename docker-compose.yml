@@ -29,6 +29,7 @@ services:
       - postgres-db:/var/lib/postgresql/data
 
   pgadmin:
+    profiles: [tools]
     image: chorss/docker-pgadmin4
     restart: always
     ports:
@@ -38,7 +39,7 @@ services:
 
   worker:
     image: dialog-api
-    command: celery worker --app=app.services.worker_svc -l info -Q default
+    command: celery --app=app.services.worker_svc:celery_app worker -l info -Q default
     env_file:
       - ./.env
     depends_on:
@@ -53,8 +54,9 @@ services:
       - redis_data:/data
 
   dashboard:
+    profiles: [tools]
     image: dialog-api
-    command: flower worker --app=app.services.worker_svc --address=0.0.0.0 --port=${FLOWER_PORT} --broker=redis://redis:6379/0 --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}
+    command: celery --app=app.services.worker_svc:celery_app flower --address=0.0.0.0 --port=${FLOWER_PORT} --basic_auth=${FLOWER_USER}:${FLOWER_PASSWORD}
     ports:
       - ${FLOWER_PORT}:${FLOWER_PORT}
     env_file:
@@ -69,6 +71,7 @@ services:
 #      - 8000:8000
 
   get_joke:
+    profiles: [legacy-joke-service]
     image: get-joke
     ports:
       - 8000:8000

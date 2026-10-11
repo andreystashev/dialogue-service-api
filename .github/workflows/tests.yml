@@ -35,9 +35,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.10'
-      # Celery 4 has legacy metadata; pip 24.1+ rejects that release.
+      # Keep the installer version consistent with the development instructions.
       - run: python -m pip install pip==24.0
       - run: python -m pip install -r requirements-test.txt
+      - run: python -m pip check
+      - run: celery --app=app.services.worker_svc:celery_app worker --help
+      - run: celery --app=app.services.worker_svc:celery_app flower --help
       - run: python -m unittest discover -s tests/unit -v
       - run: python -m pytest tests/app -q
       - run: python -m compileall -q app tests
